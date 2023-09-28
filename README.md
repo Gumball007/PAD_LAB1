@@ -1,4 +1,4 @@
-![header](https://capsule-render.vercel.app/api?type=waving&color=gradient&height=300&section=header&text=%20PAD&fontSize=90&animation=fadeIn&fontAlignY=38&desc=Corolețchi%20Ana%20FAF%20203)
+![header](https://capsule-render.vercel.app/api?type=waving&color=gradient&height=300&section=header&text=%20PTR&fontSize=90&animation=fadeIn&fontAlignY=38&desc=Corolețchi%20Ana%20FAF%20203)
 
  
 ## Description
@@ -9,7 +9,7 @@
 
 ## Labs
 
-[:construction: Project 1](https://github.com/Gumball007/PAD_LAB1)
+[:white_check_mark: Checkpoint 1](https://github.com/Gumball007/PAD_LAB1/checkpoint1)
 
 ## Contact
 
