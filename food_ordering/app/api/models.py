@@ -1,29 +1,34 @@
-from pydantic import BaseModel
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
-# defining the request and response models using Pydantic
-class OrderItem(BaseModel):
-    item_id: int
-    quantity: int
+Base = declarative_base()
 
-class PlaceOrderRequest(BaseModel):
-    customer_id: int
-    items: list[OrderItem]
 
-class PlaceOrderResponse(BaseModel):
-    order_id: int
-    message: str
+class Customer(Base):
+    __tablename__ = 'customers'
 
-class TrackOrderResponse(BaseModel):
-    order_id: int
-    status: str
-    items: list[OrderItem] 
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String)
 
-class CallbackRequest(BaseModel):
-    order_id: int
-    status: str
-    message: str
 
-class CallbackResponse(BaseModel):
-    order_id: int
-    status: str
-    message: str
+class Order(Base):
+    __tablename__ = 'orders'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    customer_id = Column(Integer, ForeignKey('customers.id'))
+    restaurant_id = Column(Integer, nullable=False)
+    status = Column(String, nullable=False)
+
+    customer = relationship("Customer")
+
+
+class OrderItem(Base):
+    __tablename__ = 'order_items'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    order_id = Column(Integer, ForeignKey('orders.id'))
+    item_id = Column(Integer, nullable=False)
+    quantity = Column(Integer, nullable=False)
+
+    order = relationship("Order")

@@ -1,36 +1,23 @@
-from pydantic import BaseModel
+from sqlalchemy import Column, ForeignKey, Integer, String, Float
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
-# defining the request and response models using Pydantic
-class RestaurantListResponse(BaseModel):
-    id: int
-    name: str
+Base = declarative_base()
 
-class MenuResponseItem(BaseModel):
-    id: str
-    name: str
-    price: float
 
-class RestaurantMenuResponse(BaseModel):
-    name: str
-    menu: list[MenuResponseItem]
+class Restaurant(Base):
+    __tablename__ = 'restaurants'
 
-class MenuRequest(BaseModel):
-    name: str
-    description: str
-    price: float
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
 
-class MenuResponse(BaseModel):
-    item_id: str
-    name: str
-    description: str
-    price: float
 
-class OrderCallbackRequest(BaseModel):
-    restaurant_id: int
-    order_id: int
-    status: str
+class MenuItem(Base):
+    __tablename__ = 'menu_items'
 
-class OrderCallbackResponse(BaseModel):
-    restaurant_id: int
-    order_id: int
-    status: str
+    id = Column(Integer, primary_key=True)
+    restaurant_id = Column(Integer, ForeignKey('restaurants.id'))
+    name = Column(String)
+    price = Column(Float)
+
+    restaurant = relationship("Restaurant")

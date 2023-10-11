@@ -1,34 +1,53 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from starlette import status
 
-from app.api.models import *
+from food_ordering.app.api.db1 import get_db
+from schemas import *
+from models import *
 
 orders = APIRouter()
 
-@orders.post("/orders", response_model = PlaceOrderResponse)
-async def place_order(payload: PlaceOrderRequest):
-    return {"order_id": 1, "message": "test"}
+
+@orders.post("/orders", response_model=PlaceOrderResponse)
+async def place_order(payload: PlaceOrderRequest, db: Session = Depends(get_db)):
+    order_request = Order(customer_id=payload.customer_id, restaurant_id=payload.restaurant_id, status="In-Progress")
+    new_order_request_id = order_request.order_id
+    db.add(order_request)
+    db.commit()
+
+    for item in payload.items:
+        new_order_item = OrderItem(order_id=new_order_request_id, item_id=item.item_id, quantity=item.quantity)
+        db.add(new_order_item)
+        db.commit()
+
+    return PlaceOrderResponse(order_id=new_order_request_id, restaurant_id=payload.restaurant_id,
+                              message="Order placed")
 
 
-@orders.get("/orders/{order_id}", response_model = TrackOrderResponse)
-async def track_order(order_id: int):
-    item = {"item_id": 4, "quantity": 4}
-    return {"order_id": order_id, "status": "test", "items": list}
+@orders.get("/orders/{order_id}")
+async def track_order(order_id: int, db: Session = Depends(get_db)):
+    order = db.query(Order).get(order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"No order with this id: {id} found")
+
+    return order
 
 
-@orders.post("/callback/orders/{order_id}/complete", response_model = CallbackResponse)
-async def order_completion_callback(order_id: int, callback_data: CallbackRequest):
-    # Check if the order_id exists in the "database" (in-memory dictionary)
-    # if order_id not in order_db:
-    #     raise HTTPException(status_code=404, detail="Order not found")
+@orders.post("/callback/orders/{order_id}/complete", response_model=CallbackResponse)
+async def order_completion_callback(order_id: int, callback_data: CallbackRequest, db: Session = Depends(get_db)):
+    order = db.query(Order).get(order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"No order with this id: {id} found")
+    order.status = "Done"
+    db.add(order)
+    db.commit()
 
-    # update the order status and message based on the callback data
-    # order_info = order_db[order_id]
-    # order_info["status"] = callback_data.status
-    # order_info["message"] = callback_data.message
+    return callback_data
 
-    # retrieve the updated order status and message
-    # status = order_info["status"]
-    # message = order_info["message"]
 
-    return {"order_id": order_id, "status": "test", "message": "message"}
-
+@orders.get("/status", status_code=200)
+async def get_status():
+    return {"status": "OK"}
