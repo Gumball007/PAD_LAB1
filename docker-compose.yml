@@ -1,8 +1,8 @@
 version: '3.8'
 services:
-  food_ordering:
+  food_ordering_db:
     image: postgres:latest
-    container_name: food_ordering
+    container_name: food_ordering_db
     environment:
       POSTGRES_USER: ana
       POSTGRES_PASSWORD: ana
@@ -12,9 +12,9 @@ services:
     ports:
       - "5432:5432"
 
-  restaurant_management:
+  restaurant_management_db:
     image: postgres:latest
-    container_name: restaurant_management
+    container_name: restaurant_management_db
     environment:
       POSTGRES_USER: ana
       POSTGRES_PASSWORD: ana

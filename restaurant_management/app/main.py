@@ -1,17 +1,19 @@
 from fastapi import FastAPI
-from app.api.restaurants import restaurants
-from app.api.db2 import metadata, database, engine
 
-metadata.create_all(engine)
+from restaurant_management.app.api.db.models import Base
+from restaurant_management.app.api.db.session import engine
+from restaurant_management.app.api.restaurants import restaurants
 
-app = FastAPI()
 
-@app.on_event("startup")
-async def startup():
-    await database.connect()
+def create_tables():
+    Base.metadata.create_all(bind=engine)
 
-@app.on_event("shutdown")
-async def shutdown():
-    await database.disconnect()
 
-app.include_router(restaurants)
+def start_application():
+    app = FastAPI()
+    app.include_router(restaurants)
+    create_tables()
+    return app
+
+
+app = start_application()

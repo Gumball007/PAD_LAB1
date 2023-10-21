@@ -1,49 +1,57 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from models import *
-from restaurant_management.app.api.db2 import get_db
-from schemas import *
+from restaurant_management.app.api.db import models
+from restaurant_management.app.api.db.session import get_db
+from restaurant_management.app.api import schemas
 
 restaurants = APIRouter()
 
 
-def menu_query(restaurant_id: int):
-    return (
-        select(MenuItem, Restaurant)
-        .join(Restaurant)
-        .where(MenuItem.restaurant_id == restaurant_id)
+def get_restaurant_menu(restaurant_id, db: Session):
+    restaurant = (
+        db.query(models.Restaurant)
+        .filter(models.Restaurant.id == restaurant_id)
+        .first()
     )
 
+    if not restaurant:
+        return None
 
-@restaurants.get("/restaurants", response_model=list[RestaurantResponse])
-async def browse_restaurants(db: Session = Depends(get_db)):
-    restaurants_entries = db.query(Restaurant).all()
-    return restaurants_entries
+    menu_items = (
+        db.query(models.MenuItem)
+        .filter(models.MenuItem.restaurant_id == restaurant_id)
+        .all()
+    )
 
-
-@restaurants.get("/restaurants/{restaurant_id}", response_model=RestaurantMenuResponse)
-async def browse_menus(restaurant_id: int, db: Session = Depends(get_db)):
-    results = db.execute(menu_query(restaurant_id))
-
-    menu_items = {
-        "name": results.scalar_one().Restaurant.name,
+    output = {
+        "name": restaurant.name,
         "menu": [
             {
-                "id": str(row.MenuItem.id),
-                "name": row.MenuItem.name,
-                "price": float(row.MenuItem.price),
+                "id": str(menu_item.id),
+                "name": menu_item.name,
+                "price": menu_item.price
             }
-            for row in results
+            for menu_item in menu_items
         ]
     }
 
-    return menu_items
+    return output
 
 
-@restaurants.post("/callback/restaurants/orders", response_model=OrderCallbackResponse)
-async def order_completion_callback(payload: OrderCallbackRequest):
+@restaurants.get("/restaurants", response_model=list[schemas.RestaurantResponse])
+async def browse_restaurants(db: Session = Depends(get_db)):
+    restaurants_entries = db.query(models.Restaurant).all()
+    return restaurants_entries
+
+
+@restaurants.get("/restaurants/{restaurant_id}")
+async def browse_menus(restaurant_id: int, db: Session = Depends(get_db)):
+    return get_restaurant_menu(restaurant_id, db)
+
+
+@restaurants.post("/callback/restaurants/orders", response_model=schemas.OrderCallbackResponse)
+async def order_completion_callback(payload: schemas.OrderCallbackRequest):
     return payload
 
 
