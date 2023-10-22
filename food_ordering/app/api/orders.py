@@ -26,7 +26,7 @@ async def place_order(payload: schemas.PlaceOrderRequest, db: Session = Depends(
         db.refresh(new_order_item)
 
     request = schemas.OrderCallbackRequest(restaurant_id=payload.restaurant_id, order_id=order_request.id, status="In-Progress")
-    httpx.post("http://localhost:8000/callback/restaurants/orders", json=jsonable_encoder(request))
+    # httpx.post("http://localhost:8000/callback/restaurants/orders", json=jsonable_encoder(request))
 
     return schemas.PlaceOrderResponse(order_id=order_request.id, restaurant_id=payload.restaurant_id,
                                       message="Order placed")

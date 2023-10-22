@@ -1,18 +1,14 @@
-defmodule Gateway do
-  @moduledoc """
-  Documentation for `Gateway`.
-  """
+defmodule Gateway.Application do
+  use Application
+  require Logger
 
-  @doc """
-  Hello world.
+  def start(_type, _args) do
+    children = [
+      {Plug.Cowboy, scheme: :http, plug: Gateway.Router, options: [port: 4000]}
+    ]
 
-  ## Examples
-
-      iex> Gateway.hello()
-      :world
-
-  """
-  def hello do
-    :world
+    Logger.info("Visit: http://localhost:4000")
+    opts = [strategy: :one_for_one, name: App.Supervisor]
+    Supervisor.start_link(children, opts)
   end
 end
