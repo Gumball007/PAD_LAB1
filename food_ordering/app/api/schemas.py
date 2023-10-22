@@ -32,12 +32,6 @@ class CallbackRequest(BaseModel):
     message: str
 
 
-class CallbackResponse(BaseModel):
-    order_id: int
-    status: str
-    message: str
-
-
 class OrderCallbackRequest(BaseModel):
     restaurant_id: int
     order_id: int

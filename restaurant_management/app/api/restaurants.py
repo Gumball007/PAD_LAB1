@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends
+import httpx
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from starlette import status
 
 from restaurant_management.app.api.db import models
 from restaurant_management.app.api.db.session import get_db
@@ -50,9 +52,33 @@ async def browse_menus(restaurant_id: int, db: Session = Depends(get_db)):
     return get_restaurant_menu(restaurant_id, db)
 
 
-@restaurants.post("/callback/restaurants/orders", response_model=schemas.OrderCallbackResponse)
-async def order_completion_callback(payload: schemas.OrderCallbackRequest):
-    return payload
+@restaurants.post("/callback/restaurants/orders")
+async def order_completion_callback(payload: schemas.CallbackRequest, db: Session = Depends(get_db)):
+    restaurant = db.query(models.Restaurant).get(payload.restaurant_id)
+    if not restaurant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"No restaurant with this id: {id} found")
+
+    r = httpx.get(f"http://localhost:8000/orders/{payload.order_id}/items")
+    items = r.json()
+    print(items)
+
+    for item in items:
+        item_id = item["item_id"]
+
+        # Check if an item with the given restaurant_id and item_id exists in the MenuItem table
+        item_exists = db.query(models.MenuItem).filter(
+            models.MenuItem.id == item_id,
+            models.MenuItem.restaurant_id == payload.restaurant_id
+        ).first()
+
+        if not item_exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"No item with this id: {item_id} found at restaurant with id: {payload.restaurant_id}")
+
+    body = schemas.CallbackRequestResponse(order_id=payload.order_id, status="Done", message="Ready to be picked up!")
+
+    return body
 
 
 @restaurants.get("/status", status_code=200)
