@@ -21,7 +21,7 @@ def start_application():
 
 
 app = start_application()
-REQUEST_TIMEOUT = 1
+REQUEST_TIMEOUT = 3
 
 
 @app.middleware('http')

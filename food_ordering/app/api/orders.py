@@ -1,7 +1,6 @@
-import asyncio
 import time
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from starlette import status
@@ -14,8 +13,51 @@ from food_ordering.app.api.db import models
 
 orders = APIRouter()
 
+# In-memory storage for request counters
+request_counters = {}
 
-@orders.post("/orders")
+
+# Custom RateLimiter class with dynamic rate limiting values per route
+class RateLimiter:
+    def __init__(self, requests_limit: int, time_window: int):
+        self.requests_limit = requests_limit
+        self.time_window = time_window
+
+    async def __call__(self, request: Request):
+        client_ip = request.client.host
+        route_path = request.url.path
+
+        # Get the current timestamp
+        current_time = int(time.time())
+
+        # Create a unique key based on client IP and route path
+        key = f"{client_ip}:{route_path}"
+
+        # Check if client's request counter exists
+        if key not in request_counters:
+            request_counters[key] = {"timestamp": current_time, "count": 1}
+        else:
+            # Check if the time window has elapsed, reset the counter if needed
+            if current_time - request_counters[key]["timestamp"] > self.time_window:
+                # Reset the counter and update the timestamp
+                request_counters[key]["timestamp"] = current_time
+                request_counters[key]["count"] = 1
+            else:
+                # Check if the client has exceeded the request limit
+                if request_counters[key]["count"] >= self.requests_limit:
+                    raise HTTPException(status_code=429, detail="Too Many Requests")
+                else:
+                    request_counters[key]["count"] += 1
+
+        # Clean up expired client data (optional)
+        for k in list(request_counters.keys()):
+            if current_time - request_counters[k]["timestamp"] > self.time_window:
+                request_counters.pop(k)
+
+        return True
+
+
+@orders.post("/orders", dependencies=[Depends(RateLimiter(requests_limit=3, time_window=60))])
 async def place_order(payload: schemas.PlaceOrderRequest, db: Session = Depends(get_db)):
     order_request = models.Order(customer_id=payload.customer_id, restaurant_id=payload.restaurant_id,
                                  status="In-Progress")
@@ -29,7 +71,8 @@ async def place_order(payload: schemas.PlaceOrderRequest, db: Session = Depends(
         db.commit()
         db.refresh(new_order_item)
 
-    request = schemas.OrderCallbackRequest(restaurant_id=payload.restaurant_id, order_id=order_request.id, status="In-Progress")
+    request = schemas.OrderCallbackRequest(restaurant_id=payload.restaurant_id, order_id=order_request.id,
+                                           status="In-Progress")
 
     async with httpx.AsyncClient() as client:
         r = await client.post("http://localhost:9000/callback/restaurants/orders", json=jsonable_encoder(request))
@@ -47,7 +90,7 @@ async def place_order(payload: schemas.PlaceOrderRequest, db: Session = Depends(
                                               message="Order placed")
 
 
-@orders.get("/orders/{order_id}")
+@orders.get("/orders/{order_id}", dependencies=[Depends(RateLimiter(requests_limit=3, time_window=60))])
 async def track_order(order_id: int, db: Session = Depends(get_db)):
     order = db.query(models.Order).get(order_id)
     if not order:
@@ -57,7 +100,7 @@ async def track_order(order_id: int, db: Session = Depends(get_db)):
     return order
 
 
-@orders.get("/orders/{order_id}/items", response_model=list[dict])
+@orders.get("/orders/{order_id}/items", response_model=list[dict], dependencies=[Depends(RateLimiter(requests_limit=3, time_window=60))])
 async def get_ordered_items(order_id: int, db: Session = Depends(get_db)):
     order = db.query(models.Order).get(order_id)
 

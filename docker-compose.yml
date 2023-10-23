@@ -24,6 +24,15 @@ services:
     ports:
       - "5433:5432"
 
+  redis:
+    image: redis:latest
+    container_name: my-redis-container
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
 volumes:
   food_ordering-data:
   restaurant_management-data:
+  redis-data:
