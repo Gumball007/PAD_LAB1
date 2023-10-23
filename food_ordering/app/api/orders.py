@@ -1,3 +1,6 @@
+import asyncio
+import time
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
@@ -32,6 +35,11 @@ async def place_order(payload: schemas.PlaceOrderRequest, db: Session = Depends(
         r = await client.post("http://localhost:9000/callback/restaurants/orders", json=jsonable_encoder(request))
 
         if r.status_code != 200:
+            order_request.status = "Declined"
+            db.add(order_request)
+            db.commit()
+            db.refresh(order_request)
+
             return JSONResponse(status_code=r.status_code, content=r.json())
 
         else:
