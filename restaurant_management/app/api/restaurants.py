@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from starlette import status
 
-from restaurant_management.app.api.db import models
-from restaurant_management.app.api.db.session import get_db
-from restaurant_management.app.api import schemas
+from app.api.db import models
+from app.api.db.session import get_db
+from app.api import schemas
 
 restaurants = APIRouter()
 
@@ -103,7 +103,7 @@ async def order_completion_callback(payload: schemas.CallbackRequest, db: Sessio
     restaurant = db.query(models.Restaurant).get(payload.restaurant_id)
     if not restaurant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"No restaurant with this id: {id} found")
+                            detail=f"No restaurant with this id: {payload.restaurant_id} found")
 
     r = httpx.get(f"http://localhost:8000/orders/{payload.order_id}/items")
     items = r.json()

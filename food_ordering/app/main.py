@@ -4,9 +4,9 @@ from fastapi import FastAPI
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_408_REQUEST_TIMEOUT
 
-from food_ordering.app.api.db.models import Base
-from food_ordering.app.api.db.session import engine
-from food_ordering.app.api.orders import orders
+from app.api.db.models import Base
+from app.api.db.session import engine
+from app.api.orders import orders
 
 
 def create_tables():

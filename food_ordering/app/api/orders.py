@@ -7,9 +7,9 @@ from starlette import status
 import httpx
 from starlette.responses import JSONResponse
 
-from food_ordering.app.api.db.session import get_db
-from food_ordering.app.api import schemas
-from food_ordering.app.api.db import models
+from app.api.db.session import get_db
+from app.api import schemas
+from app.api.db import models
 
 orders = APIRouter()
 

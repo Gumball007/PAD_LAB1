@@ -1,5 +1,34 @@
 version: '3.8'
 services:
+  gateway:
+    image: gumball7/gateway-elixir:latest
+    container_name: gateway-elixir
+    ports:
+      - "4000:4000"
+    depends_on:
+      - foodordering
+      - restaurantmanagement
+      - redis
+
+  foodordering:
+    image: gumball7/food-ordering:latest
+    container_name: foodordering
+    ports:
+      - "8000:8000"
+    depends_on:
+      - food_ordering_db
+      - redis
+
+  restaurantmanagement:
+    image: gumball7/restaurant-management:latest
+    container_name: restaurantmanagement
+    ports:
+      - "9000:9000"
+    depends_on:
+      - restaurant_management_db
+      - redis
+
+
   food_ordering_db:
     image: postgres:latest
     container_name: food_ordering_db

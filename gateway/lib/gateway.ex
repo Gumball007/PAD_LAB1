@@ -4,7 +4,8 @@ defmodule Gateway.Application do
 
   def start(_type, _args) do
     children = [
-      {Plug.Cowboy, scheme: :http, plug: Gateway.Router, options: [port: 4000]}
+      {Plug.Cowboy, scheme: :http, plug: Gateway.Router, options: [port: 4000]},
+      {Redix, {"redis://redis:6379", [name: :redix]}}
     ]
 
     Logger.info("Visit: http://localhost:4000")

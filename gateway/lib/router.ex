@@ -1,5 +1,6 @@
 defmodule Gateway.Router do
   use Plug.Router
+  require Logger
 
   plug Plug.Parsers,
        parsers: [:json],
@@ -10,11 +11,11 @@ defmodule Gateway.Router do
   plug :dispatch
 
   defp food_ordering_host() do
-    "http://localhost:8000"
+    "http://foodordering:8000"
   end
 
   defp restaurant_management_host() do
-    "http://localhost:9000"
+    "http://restaurantmanagement:9000"
   end
 
   post "/orders" do
@@ -22,35 +23,91 @@ defmodule Gateway.Router do
 
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, r.body)
+    |> send_resp(r.status_code, r.body)
   end
 
   get "/orders/:order_id" do
-    {:ok, r} = HTTPoison.get("#{food_ordering_host()}/orders/#{order_id}", %{"Content-Type" => "application/json"})
+    case Redix.command(:redix, ["GET", "order/#{order_id}"]) do
 
-    conn
-    |> put_resp_content_type("application/json")
-    |> send_resp(200, r.body)
+      {:ok, nil} ->
+        {:ok, r} = HTTPoison.get("#{food_ordering_host()}/orders/#{order_id}", %{"Content-Type" => "application/json"})
+        Redix.command!(:redix, ["SETEX", "order/#{order_id}", 3600, r.body])
+
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(r.status_code, r.body)
+
+      {:ok, cached_order} ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(200, cached_order)
+    end
   end
 
-  get "/restaurants" do
-    {:ok, r} = HTTPoison.get("#{restaurant_management_host()}/restaurants", %{"Content-Type" => "application/json"})
+  get "/orders/:order_id/items" do
 
-    conn
-    |> put_resp_content_type("application/json")
-    |> send_resp(200, r.body)
+    case Redix.command(:redix, ["GET", "order:items/#{order_id}"]) do
+
+      {:ok, nil} ->
+        {:ok, r} = HTTPoison.get("#{food_ordering_host()}/orders/#{order_id}/items", %{"Content-Type" => "application/json"})
+        Redix.command!(:redix, ["SETEX", "order:items/#{order_id}", 3600, r.body])
+
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(r.status_code, r.body)
+
+      {:ok, cached_order_items} ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(200, cached_order_items)
+    end
+  end
+
+
+  get "/restaurants" do
+
+    case Redix.command(:redix, ["GET", "restaurants"]) do
+
+      {:ok, nil} ->
+        {:ok, r} = HTTPoison.get("#{restaurant_management_host()}/restaurants", %{"Content-Type" => "application/json"})
+        Redix.command!(:redix, ["SETEX", "restaurants", 3600, r.body])
+
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(r.status_code, r.body)
+
+      {:ok, cached_restaurants} ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(200, cached_restaurants)
+    end
   end
 
   get "/restaurants/:restaurant_id" do
-    {:ok, r} = HTTPoison.get("#{restaurant_management_host()}/restaurants/#{restaurant_id}", %{"Content-Type" => "application/json"})
 
-    conn
-    |> put_resp_content_type("application/json")
-    |> send_resp(200, r.body)
-  end
+    case Redix.command(:redix, ["GET", "restaurant/#{restaurant_id}"]) do
+
+      {:ok, nil} ->
+        {:ok, r} = HTTPoison.get("#{restaurant_management_host()}/restaurants/#{restaurant_id}", %{"Content-Type" => "application/json"})
+        Redix.command!(:redix, ["SETEX", "restaurant/#{restaurant_id}", 3600, r.body])
+
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(r.status_code, r.body)
+
+      {:ok, cached_restaurant} ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(200, cached_restaurant)
+    end
+end
 
   get "/status" do
     {:ok, r} = Jason.encode(%{"Gateway": "healthy"})
+    Redix.command(:redix, ["SET", "mykey", "foo"])
+    {:ok, test} = Redix.command(:redix, ["GET", "mykey"])
+    IO.inspect test
+
     send_resp(put_resp_content_type(conn, "application/json"), 200, r)
   end
 

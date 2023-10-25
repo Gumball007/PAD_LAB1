@@ -4,9 +4,9 @@ from fastapi import FastAPI
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_408_REQUEST_TIMEOUT
 
-from restaurant_management.app.api.db.models import Base
-from restaurant_management.app.api.db.session import engine
-from restaurant_management.app.api.restaurants import restaurants
+from app.api.db.models import Base
+from app.api.db.session import engine
+from app.api.restaurants import restaurants
 
 
 def create_tables():
