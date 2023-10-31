@@ -105,7 +105,7 @@ async def order_completion_callback(payload: schemas.CallbackRequest, db: Sessio
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"No restaurant with this id: {payload.restaurant_id} found")
 
-    r = httpx.get(f"http://localhost:8000/orders/{payload.order_id}/items")
+    r = httpx.get(f"http://foodordering:8000/orders/{payload.order_id}/items")
     items = r.json()
     print(items)
 

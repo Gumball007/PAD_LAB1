@@ -75,7 +75,7 @@ async def place_order(payload: schemas.PlaceOrderRequest, db: Session = Depends(
                                            status="In-Progress")
 
     async with httpx.AsyncClient() as client:
-        r = await client.post("http://localhost:9000/callback/restaurants/orders", json=jsonable_encoder(request))
+        r = await client.post("http://restaurantmanagement:9000/callback/restaurants/orders", json=jsonable_encoder(request))
 
         if r.status_code != 200:
             order_request.status = "Declined"
