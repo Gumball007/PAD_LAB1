@@ -26,7 +26,8 @@ defmodule Gateway.Application do
       %{
         id: :food_ordering,
         start: {LoadBalancer, :start_link, [{:ets.tab2list(food_ordering_services), :food_ordering}]}
-      }
+      },
+      Gateway.PromEx
     ]
 
     Logger.info("Visit: http://localhost:4000")

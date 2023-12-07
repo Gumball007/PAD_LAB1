@@ -25,7 +25,8 @@ defmodule Gateway.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:jason, "~> 1.1"},
       {:httpoison, "~> 2.0"},
-      {:redix, "~> 1.1"}
+      {:redix, "~> 1.1"},
+      {:prom_ex, "~> 1.9.0"}
     ]
   end
 end

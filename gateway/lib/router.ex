@@ -2,6 +2,8 @@ defmodule Gateway.Router do
   use Plug.Router
   require Logger
 
+  plug PromEx.Plug, prom_ex_module: Gateway.PromEx
+
   plug Plug.Parsers,
        parsers: [:json],
        pass:  ["application/json"],
