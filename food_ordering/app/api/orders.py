@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from starlette import status
 import httpx
 from starlette.responses import JSONResponse
+from itertools import cycle
+from sqlalchemy import text
 
 from app.api.db.session import get_db
 from app.api import schemas
@@ -15,6 +17,15 @@ orders = APIRouter()
 
 # In-memory storage for request counters
 request_counters = {}
+#
+ports = ["http://restaurantmanagement-1:9000",
+         "http://restaurantmanagement-2:9001",
+         "http://restaurantmanagement-3:9002",
+         "http://restaurantmanagement-4:9003"]
+#
+# ports = ["http://localhost:9000"]
+
+round_robin = cycle(ports)
 
 
 # Custom RateLimiter class with dynamic rate limiting values per route
@@ -75,7 +86,8 @@ async def place_order(payload: schemas.PlaceOrderRequest, db: Session = Depends(
                                            status="In-Progress")
 
     async with httpx.AsyncClient() as client:
-        r = await client.post("http://restaurantmanagement:9000/callback/restaurants/orders", json=jsonable_encoder(request))
+        r = await client.post(f"{next(round_robin)}/callback/restaurants/orders",
+                              json=jsonable_encoder(request))
 
         if r.status_code != 200:
             order_request.status = "Declined"
@@ -100,7 +112,8 @@ async def track_order(order_id: int, db: Session = Depends(get_db)):
     return order
 
 
-@orders.get("/orders/{order_id}/items", response_model=list[dict], dependencies=[Depends(RateLimiter(requests_limit=3, time_window=60))])
+@orders.get("/orders/{order_id}/items", response_model=list[dict],
+            dependencies=[Depends(RateLimiter(requests_limit=3, time_window=60))])
 async def get_ordered_items(order_id: int, db: Session = Depends(get_db)):
     order = db.query(models.Order).get(order_id)
 
@@ -123,3 +136,12 @@ async def get_ordered_items(order_id: int, db: Session = Depends(get_db)):
 @orders.get("/status", status_code=200)
 async def get_status():
     return {"status": "OK"}
+
+
+@orders.get("/health", status_code=200)
+async def get_status(db: Session = Depends(get_db)):
+    try:
+        db.execute(text('SELECT 1'))
+        return {"status": "OK"}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database is down")

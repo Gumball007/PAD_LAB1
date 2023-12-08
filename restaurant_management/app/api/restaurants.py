@@ -4,6 +4,8 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from starlette import status
+from itertools import cycle
+from sqlalchemy import text
 
 from app.api.db import models
 from app.api.db.session import get_db
@@ -11,9 +13,17 @@ from app.api import schemas
 
 restaurants = APIRouter()
 
-
 # In-memory storage for request counters
 request_counters = {}
+
+ports = ["http://foodordering-1:8000",
+         "http://foodordering-2:8001",
+         "http://foodordering-3:8002",
+         "http://foodordering-4:8003"]
+
+# ports = ["http://localhost:8000"]
+
+round_robin = cycle(ports)
 
 
 # Custom RateLimiter class with dynamic rate limiting values per route
@@ -87,7 +97,8 @@ def get_restaurant_menu(restaurant_id, db: Session):
     return output
 
 
-@restaurants.get("/restaurants", response_model=list[schemas.RestaurantResponse], dependencies=[Depends(RateLimiter(requests_limit=3, time_window=60))])
+@restaurants.get("/restaurants", response_model=list[schemas.RestaurantResponse],
+                 dependencies=[Depends(RateLimiter(requests_limit=3, time_window=60))])
 async def browse_restaurants(db: Session = Depends(get_db)):
     restaurants_entries = db.query(models.Restaurant).all()
     return restaurants_entries
@@ -105,7 +116,7 @@ async def order_completion_callback(payload: schemas.CallbackRequest, db: Sessio
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"No restaurant with this id: {payload.restaurant_id} found")
 
-    r = httpx.get(f"http://foodordering:8000/orders/{payload.order_id}/items")
+    r = httpx.get(f"{next(round_robin)}/orders/{payload.order_id}/items")
     items = r.json()
     print(items)
 
@@ -122,6 +133,9 @@ async def order_completion_callback(payload: schemas.CallbackRequest, db: Sessio
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"No item with this id: {item_id} found at restaurant with id: {payload.restaurant_id}")
 
+        restaurant.order_id = payload.order_id
+        db.commit()
+
     body = schemas.CallbackRequestResponse(order_id=payload.order_id, status="Done", message="Ready to be picked up!")
 
     return body
@@ -130,3 +144,12 @@ async def order_completion_callback(payload: schemas.CallbackRequest, db: Sessio
 @restaurants.get("/status", status_code=200)
 async def get_status():
     return {"status": "OK"}
+
+
+@restaurants.get("/health", status_code=200)
+async def get_status(db: Session = Depends(get_db)):
+    try:
+        db.execute(text('SELECT 1'))
+        return {"status": "OK"}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database is down")

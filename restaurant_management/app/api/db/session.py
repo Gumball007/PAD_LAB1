@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = 'postgresql://ana:ana@restaurant_management_db:5432/restaurant_management'
+# DATABASE_URL = 'postgresql://ana:ana@localhost:5433/restaurant_management'
 
 
 engine = create_engine(

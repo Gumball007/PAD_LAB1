@@ -55,17 +55,28 @@ defmodule Gateway.Router do
   end
 
   post "/orders" do
-    case post_with_retry("orders", :food_ordering, conn.body_params, 3) do
-      {:ok, r} ->
-        conn
-        |> put_resp_content_type("application/json")
-        |> send_resp(r.status_code, r.body)
+    {GenServer.call(:coordinator, :first_check), GenServer.call(:coordinator, :second_check)}
+    state = GenServer.call(:coordinator, :get_state)
 
-      {:reroutes_exceded, a} ->
-        Logger.error("Number of reroutes exceded")
-        {:reroutes_exceded, a}
+    case state do
+      %{food_ordering: 1, restaurant_management: 1} ->
+        Logger.info("Both DBs are [GOOD]")
+
+        case post_with_retry("orders", :food_ordering, conn.body_params, 3) do
+          {:ok, r} ->
+            conn
+            |> put_resp_content_type("application/json")
+            |> send_resp(r.status_code, r.body)
+
+          {:reroutes_exceded, a} ->
+            Logger.error("Number of reroutes exceded")
+            {:reroutes_exceded, a}
+            send_resp(conn, 500, "Something is bad with server")
+        end
+      _ ->
+        Logger.error("At least one DB is [DOWN]!!! 2 Phase Commit FAILED")
         send_resp(conn, 500, "Something is bad with server")
-    end
+      end
   end
 
   get "/orders/:order_id" do

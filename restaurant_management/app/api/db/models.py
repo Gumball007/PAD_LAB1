@@ -10,6 +10,7 @@ class Restaurant(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
+    order_id = Column(Integer, nullable=True)
 
 
 class MenuItem(Base):

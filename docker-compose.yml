@@ -6,28 +6,95 @@ services:
     ports:
       - "4000:4000"
     depends_on:
-      - foodordering
-      - restaurantmanagement
       - redis
 
-  foodordering:
+  foodordering-1:
     image: gumball7/food-ordering:latest
-    container_name: foodordering
+    container_name: foodordering-1
     ports:
       - "8000:8000"
+    environment:
+      - PORT=8000
     depends_on:
       - food_ordering_db
       - redis
 
-  restaurantmanagement:
+  foodordering-2:
+    image: gumball7/food-ordering:latest
+    container_name: foodordering-2
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+    depends_on:
+      - food_ordering_db
+      - redis
+
+  foodordering-3:
+    image: gumball7/food-ordering:latest
+    container_name: foodordering-3
+    ports:
+      - "8002:8002"
+    environment:
+      - PORT=8002
+    depends_on:
+      - food_ordering_db
+      - redis
+
+  foodordering-4:
+    image: gumball7/food-ordering:latest
+    container_name: foodordering-4
+    ports:
+      - "8003:8003"
+    environment:
+      - PORT=8003
+    depends_on:
+      - food_ordering_db
+      - redis
+
+  restaurantmanagement-1:
     image: gumball7/restaurant-management:latest
-    container_name: restaurantmanagement
+    container_name: restaurantmanagement-1
     ports:
       - "9000:9000"
+    environment:
+      - PORT=9000
     depends_on:
       - restaurant_management_db
       - redis
 
+  restaurantmanagement-2:
+    image: gumball7/restaurant-management:latest
+    container_name: restaurantmanagement-2
+    ports:
+      - "9001:9001"
+    environment:
+      - PORT=9001
+    depends_on:
+      - restaurant_management_db
+      - redis
+
+  restaurantmanagement-3:
+    image: gumball7/restaurant-management:latest
+    container_name: restaurantmanagement-3
+    ports:
+      - "9002:9002"
+    environment:
+      - PORT=9002
+    depends_on:
+      - restaurant_management_db
+      - redis
+
+  restaurantmanagement-4:
+    image: gumball7/restaurant-management:latest
+    container_name: restaurantmanagement-4
+    ports:
+      - "9003:9003"
+    environment:
+      - PORT=9003
+    depends_on:
+      - restaurant_management_db
+      - redis
 
   food_ordering_db:
     image: postgres:latest
